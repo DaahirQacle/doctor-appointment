@@ -296,7 +296,6 @@ export const get_departments_summary_by_hospital_id=async(req, res)=>{
       }
     }
   }
-  console.log(hospital_id, 'hospital_id')
   const doctor_lookup = {
     $lookup: {
       from: "doctors",

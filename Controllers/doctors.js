@@ -3,6 +3,10 @@ import Doctors from "../Models/doctors.js";
 import Hospitals from "../Models/hosbitals.js";
 import cloudinary from "../utilities/cloudinary.js";
 import Departments from "../Models/departments.js";
+import moment from 'moment'
+import generated_doctor_appointments from "../Models/generate_doctor_appointments.js";
+import appointment from "../Models/appointment.js";
+import cron  from 'node-cron'
 
 const createDoctor = async (req, res) => {
   try {
@@ -428,6 +432,7 @@ export const get_doctors_report_by_hospital_id = async (req, res) => {
     res.status(500).json({ message: error.message, success: false });
   }
 };
+
 export const update_doctor_appointments = async (req, res) => {
   try {
     let doctor_id = req.body.doctor_id
@@ -443,6 +448,7 @@ export const update_doctor_appointments = async (req, res) => {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+
 export const activate_or_deactivate_doctor = async (req, res) => {
   try {
     let { doctor_id, is_active } = req.body;
@@ -459,4 +465,83 @@ export const activate_or_deactivate_doctor = async (req, res) => {
     res.status(500).json({ success: false, message: error.message })
   }
 }
+export const generate_doctor_appointments = async (req, res) => {
+  try {
+    let { doctor_id } = req.body;
+
+    let entryTime = moment(req.body.entry_time, 'HH:mm');
+    let leaveTime = moment(req.body.leave_time, 'HH:mm');
+    let interval = parseInt(req.body.interval);
+    let lastAppointment = moment(leaveTime).subtract(interval, 'minutes').format('HH:mm');
+    let newTime = moment(entryTime).add(interval, 'minutes').format('HH:mm');
+    const appointments = [];
+    let appointmentIndex = 1;
+
+    let appointment_one = {
+      index: appointmentIndex,
+      title: `Appointment ${appointmentIndex}`,
+      status: 0,
+      time: req.body.entry_time,
+    };
+    appointments.push(appointment_one);
+    while (newTime !== lastAppointment) {
+      appointmentIndex += 1;
+      const appointment = {
+        index: appointmentIndex,
+        title: `Appointment ${appointmentIndex}`,
+        time: newTime,
+        status: 0,
+      };
+      appointments.push(appointment);
+      newTime = moment(newTime, 'HH:mm').add(interval, 'minutes').format('HH:mm');
+    }
+    let last_appointment = {
+      index: appointmentIndex+1,
+      title: `Appointment ${appointmentIndex+1}`,
+      status: 0,
+      time: lastAppointment,
+    };
+    appointments.push(last_appointment)
+   let generated=await generated_doctor_appointments.create({
+      doctor_id,
+      appointments
+    })
+    if(generated){
+      await Doctors.findByIdAndUpdate({_id:doctor_id}, {has_appointments:true}, {new:true}).then((updated_doctor)=>{
+        if(updated_doctor){
+          res.status(200).json({ success: true, message:'Success', data: generated });
+        }else{
+     res.status(200).json({success:false, message:'Doctor Not Found'})
+        }
+      })
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+export const get_doctor_appointments = async (req, res) => {
+  try {
+    const doctor_id = req.params.doctor_id;
+    await generated_doctor_appointments.findOne({ doctor_id }).then((appointments) => {
+      if (appointments) {
+        let _id=appointments._id
+        let doctor_id=appointments.doctor_id
+        const available_appointments = appointments.appointments.filter((appointment) => appointment.status === 0);
+        let data={
+          _id,
+          doctor_id,
+          appointments:available_appointments
+        }
+        res.status(200).json({ success: true, message: "Success", data: data });
+      } else {
+        res.status(404).json({ success: false, message: "No Appointments Found" });
+      }
+    }, (error) => {
+      res.status(500).json({ success: false, message: error.message });
+    });
+    //const currentTime = moment(new Date).format('HH:mm');
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 export { createDoctor, updateDoctor, deleteDoctor, fetchDoctors }

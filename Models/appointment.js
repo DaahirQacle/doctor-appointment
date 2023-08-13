@@ -9,7 +9,7 @@ const appointment_schema = mongoose.Schema({
     address: { type: String },
     responsive_person: { type: String },
     responsive_person_phone: { type: Number },
-    appointment_time:{ type: String },
+    appointment:{ type: Object },
     doctor_id: { type: mongoose.Types.ObjectId },
     hospital_id:{type:mongoose.Types.ObjectId},
     appointment_fee:{type:Number},

@@ -1,4 +1,3 @@
-import { error } from 'console';
 import { user } from '../Models/user.js';
 import bcrypt from 'bcrypt';
 import appointment from '../Models/appointment.js';
@@ -227,7 +226,7 @@ export const get_user_history_by_id=async(req, res)=>{
       address:1,
       responsive_person:1,
       responsive_person_phone:1,
-      appointment_time:1,
+      appointment:1,
       doctor_id:1,
       appointment_fee: 1,
       hospital_id:1,

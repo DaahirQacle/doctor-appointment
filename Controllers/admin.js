@@ -254,7 +254,6 @@ export const reset_password = async (req, res) => {
               return  res.status(200).json({success:false, message:"Incorrect Password"})
           }else{
             if(admin_data.admin_type==1){
-              console.log("system admin");
             admin.findOneAndUpdate({user_name}, {logged_at:new Date()}, {new:true}).then((updated_admin)=>{
               if(updated_admin){
                 const token = updated_admin.createJWT()

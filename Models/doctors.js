@@ -8,7 +8,6 @@ const doctorModel = mongoose.Schema({
     address: {type:String, required:true},
     specialist: {type:String, required:true},
     experience: {type:Number, required:true},
-    appointments:{type: Array},
     phone:{type:Number, unique:true, required:true},
     image:{public_id:{type:String}, url:{type:String}},
     email:{type:String, unique:true, required:true, lowerCase:true},
@@ -27,7 +26,8 @@ const doctorModel = mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'hospitals',
         required:true
-      }
+      },
+      has_appointments:{type:Boolean, default:false}
     
     },{ timestamps:true});
 

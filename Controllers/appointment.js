@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import appointment from "../Models/appointment.js"
 import Departments from "../Models/departments.js";
 import Doctors from "../Models/doctors.js";
-
+import generated_doctor_appointments from "../Models/generate_doctor_appointments.js";
+import moment from "moment";
 
 export const create_appointment = async (req, res) => {
   try {
@@ -13,18 +14,42 @@ export const create_appointment = async (req, res) => {
       address: req.body.address,
       responsive_person: req.body.responsive_person.trim().toLowerCase(),
       responsive_person_phone: req.body.responsive_person_phone,
-      appointment_time: req.body.appointment_time,
+      appointment: req.body.appointment,
       appointment_fee: req.body.appointment_fee,
       doctor_id: req.body.doctor_id,
       hospital_id: req.body.hospital_id,
       user_id: req.body.user_id,
     });
-    res.status(200).json({
-      success: true,
-      message: "Successfully Created Appointment",
-      data: new_appointment,
-    });
+   
+    await generated_doctor_appointments.findOne({doctor_id:req.body.doctor_id}).then((doctor_appointments)=>{
+      if(doctor_appointments){
+        doctor_appointments.appointments.forEach((appointment)=>{
+          if(appointment.index==new_appointment.appointment.index){
+            appointment.status=1
+          }
+        })
+        generated_doctor_appointments.findByIdAndUpdate({_id:doctor_appointments._id}, {appointments:doctor_appointments.appointments}, {new:true}).then((updated_appointments)=>{
+          if(updated_appointments){
+            res.status(200).json({
+              success: true,
+              message: "Successfully Created Appointment",
+              data: doctor_appointments,
+            });
+          }else{
+            res.status(500).json({success:false, message:'Something Went Wrong'})
+          }
+        },(error)=>{
+          res.status(500).json({success:false, message:error.message})
+        })
+        
+      }else{
+        res.status(404).json({success:false, message:'Doctor Has Not Appointments'})
+      }
+    },(error)=>{
+      res.status(500).json({success:false, message:error.message})
+    })
   } catch (error) {
+    console.log(error)
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -188,7 +213,6 @@ export const get_appointments_report_ = async (req, res) => {
         }
       }
     }
-    console.log(filter, 'filter')
     let sort = {
       $sort: {
         createdAt: -1
@@ -196,7 +220,6 @@ export const get_appointments_report_ = async (req, res) => {
     }
     appointment.aggregate([filter, sort]).then((appointments) => {
       if (appointments) {
-        console.log(appointments, 'appointments')
         res.status(200).json({ success: true, message: 'Success', data: appointments })
       }
     }, (error) => {
