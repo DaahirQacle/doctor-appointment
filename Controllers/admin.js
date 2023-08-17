@@ -172,7 +172,7 @@ export const reset_password = async (req, res) => {
   
       const user = await admin.findById(admin_id);
       if (!user) {
-        return res.status(200).json({ success: false, message: "Admin not found" });
+        return res.status(200).json({ success: false, message: "Email Does Not Exist" });
       }
   
       const isPasswordValid = bcrypt.compareSync(old_password, user.password);
@@ -247,12 +247,16 @@ export const reset_password = async (req, res) => {
       if(!user_name || !password){
          return  res.status(200).json({success:false, message:"Please enter username and password"})
      }else{
+      user_name=user_name.trim()
       await admin.findOne({user_name}).then((admin_data)=>{
         if(admin_data){
           const isCorrect =  bcrypt.compareSync(password,admin_data.password)
           if(!isCorrect){
               return  res.status(200).json({success:false, message:"Incorrect Password"})
           }else{
+            if(admin_data.status==0){
+              res.status(400).json({success:false, message:"You aren't currently active, You can't login"})
+            }else{
             if(admin_data.admin_type==1){
             admin.findOneAndUpdate({user_name}, {logged_at:new Date()}, {new:true}).then((updated_admin)=>{
               if(updated_admin){
@@ -272,36 +276,40 @@ export const reset_password = async (req, res) => {
               res.status(500).json({success:false, message:error.message})
             })
             }else{
-              Hospitals.findById({_id:admin_data.hospital_id}).then((hospital)=>{
-                if(hospital){
-                  if(!hospital.is_approved){
-                    res.status(200).json({success:false, message:'Your Hospital Is Not Approved Ask The Admin To Approve'})
-                  }else{
-                  admin.findOneAndUpdate({hospital_id:hospital._id},{logged_at:new Date()}, {new:true}).then((updated_admin)=>{
-                    if(updated_admin){
-                      const token = updated_admin.createJWT()
-                      res.status(200).json({user:{
-                          userId:updated_admin.hospital_id,
-                          admin_type:updated_admin.admin_type,
-                          user_name:updated_admin.user_name,
-                          current_user:updated_admin._id,
-                          status:updated_admin.status,
-                          phone:updated_admin.phone,
-                      },token , success:true ,message:"Successfully logged"})
+              if(!admin_data.hospital_id && admin_data.hospital_id==undefined && admin_data.hospital_id==null){
+              res.status(404).json({success:false, message:'Invalid Hospital Admin'})
+              }else{
+                Hospitals.findById({_id:admin_data.hospital_id}).then((hospital)=>{
+                  if(hospital){
+                    if(!hospital.is_approved){
+                      res.status(200).json({success:false, message:'Your Hospital Is Not Approved Ask The Admin To Approve'})
                     }else{
-                      res.status(200).json({success:false, message:'Admin Not Found'})
+                    admin.findOneAndUpdate({hospital_id:hospital._id},{logged_at:new Date()}, {new:true}).then((updated_admin)=>{
+                      if(updated_admin){
+                        const token = updated_admin.createJWT()
+                        res.status(200).json({user:{
+                            userId:updated_admin.hospital_id,
+                            admin_type:updated_admin.admin_type,
+                            user_name:updated_admin.user_name,
+                            current_user:updated_admin._id,
+                            status:updated_admin.status,
+                            phone:updated_admin.phone,
+                        },token , success:true ,message:"Successfully logged"})
+                      }else{
+                        res.status(200).json({success:false, message:'Admin Not Found'})
+                      }
+                    },(error)=>{
+                      res.status(500).json({success:false, message:error.message})
+                    })
                     }
-                  },(error)=>{
-                    res.status(500).json({success:false, message:error.message})
-                  })
+                  }else{
+                    res.status(200).json({success:false, message:'No Hospital Found'})
                   }
-                }else{
-                  res.status(200).json({success:false, message:'No Hospital Found'})
-                }
-              },(error)=>{
-                res.status(500).json({success:false, message:error.message})
-              })
-            }
+                },(error)=>{
+                  res.status(500).json({success:false, message:error.message})
+                })
+              }}
+              }
           }
         }else{
           res.status(200).json({success:false, message:'Invalid Username'})
@@ -310,6 +318,67 @@ export const reset_password = async (req, res) => {
         res.status(500).json({success:false, message:error.message})
       })
      }
+    }catch(error){
+      res.status(500).json({success:false, message:error.message})
+    }
+  }
+
+  export const get_system_admins=async(req, res)=>{
+    try{
+    let falter={
+      $match:{
+        "admin_type":{
+          $eq:1
+        }
+      }
+    }
+    let project={
+    
+        $project: {
+          password: 0
+        }
+      
+    }
+    await admin.aggregate([falter, project]).then((admins)=>{
+      if(admins){
+    res.status(200).json({success:true, message:"Success", data:admins})
+      }else{
+        res.status(404).json({success:false, message:'No Admins Found'})
+      }
+    },(error)=>{
+      res.status(500).json({success:false, message:error.message})
+    })
+    }catch(error){
+      res.status(500).json({success:false, message:error.message})
+    }
+  }
+  export const get_hospital_single_admins=async(req, res)=>{
+    try{
+      let hospital_id=req.params.hospital_id
+    let falter={
+      $match:{
+        "admin_type":{
+          $eq:2
+        },
+        "hospital_id":{
+          $eq:new mongoose.Types.ObjectId(hospital_id)
+        }
+      }
+    }
+    let project={
+      $project: {
+        password: 0
+      }
+  }
+    await admin.aggregate([falter, project]).then((admins)=>{
+      if(admins){
+    res.status(200).json({success:true, message:"Success", data:admins})
+      }else{
+        res.status(404).json({success:false, message:'No Admins Found'})
+      }
+    },(error)=>{
+      res.status(500).json({success:false, message:error.message})
+    })
     }catch(error){
       res.status(500).json({success:false, message:error.message})
     }

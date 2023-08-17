@@ -2,6 +2,7 @@ import mongoose from "mongoose"
 import emergency from "../Models/emergency.js"
 import Hospitals from "../Models/hosbitals.js"
 import cron  from 'node-cron'
+import { send_sms } from "../utilities/gateways.js"
 
 export const create_emergency=async(req, res)=>{
     try{
@@ -28,6 +29,10 @@ export const create_emergency=async(req, res)=>{
               need_ambulance:_need_ambulance,
               hospital_id:req.body.hospital_id
             })
+            let phone=Number(req.body.phone)
+            let patient_name=req.body.patient_name
+            let content =`Dear, ${patient_name} waad ku mahadsantahay inaad soo dalbato adeeg degdeg ah`
+            send_sms(content, phone)
             res.status(200).json({success:true, message:'Successfully Created Emergency'})
             }else{
                 res.status(200).json({success:false,message:'Hospital Emergency Not Closed'})

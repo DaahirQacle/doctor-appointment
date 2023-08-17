@@ -8,7 +8,7 @@ export const admin_schema=mongoose.Schema({
     user_name:{type:String},
     password:{type:String},
     admin_type:{type:Number},
-    hospital_id:{type:mongoose.Types.ObjectId},
+    hospital_id:{type:mongoose.Types.ObjectId, default:null},
     status:{type: Number, default:1},
     logged_at: { type: Date, default: null },
 },

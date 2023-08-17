@@ -7,10 +7,15 @@ var salt = bcrypt.genSaltSync(10);
 
 export const register_user=async(req, res)=>{
     try{
+      let {user_name, phone, password}=req.body
+      const phoneRegex = /^61\d{7}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ error: 'Invalid phone number' });
+    }
      let data=await new user({
-            user_name:req.body.user_name.trim().toLowerCase(),
-            phone:Number(req.body.phone),
-            password: bcrypt.hashSync(req.body.password, salt),
+      user_name:user_name.trim().toLowerCase(),
+      phone:Number(phone),
+      password: bcrypt.hashSync(password, salt),
         }).save()
       res.status(200).json({success:true, message:'Successfully Registered User',data:data })
     }catch(error){
