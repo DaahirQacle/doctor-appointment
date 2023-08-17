@@ -11,6 +11,8 @@ export const admin_schema=mongoose.Schema({
     hospital_id:{type:mongoose.Types.ObjectId, default:null},
     status:{type: Number, default:1},
     logged_at: { type: Date, default: null },
+    created_by:{type:mongoose.Types.ObjectId},
+    is_hospital_super_admin:{type:Boolean}
 },
 {timestamps:true})
 admin_schema.methods.createJWT =  function(){

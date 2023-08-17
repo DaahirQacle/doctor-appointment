@@ -14,7 +14,9 @@ export const save_admin=async(req, res)=>{
             password: bcrypt.hashSync(req.body.password, salt),
             admin_type:req.body.admin_type,
             status:req.body.status,
-            hospital_id:req.body.hospital_id
+            hospital_id:req.body.hospital_id,
+            created_by:req.body.created_by,
+            is_hospital_super_admin:req.body.is_hospital_super_admin
         }).save();
         res.status(200).json({message:'Created Success Fully', success:true})
     } catch (error) {
@@ -230,7 +232,7 @@ export const reset_password = async (req, res) => {
       if(admins){
         res.status(200).json({success:true, message:'Success', data:admins})
       }else{
-        res.status(404).json({success:false, message:'No Admins found!'})
+        res.status(200).json({success:false, message:'No Admins found!'})
       }
     },(error)=>{
       res.status(500).json({success:false, message:error.message})
@@ -277,7 +279,7 @@ export const reset_password = async (req, res) => {
             })
             }else{
               if(!admin_data.hospital_id && admin_data.hospital_id==undefined && admin_data.hospital_id==null){
-              res.status(404).json({success:false, message:'Invalid Hospital Admin'})
+              res.status(200).json({success:false, message:'Invalid Hospital Admin'})
               }else{
                 Hospitals.findById({_id:admin_data.hospital_id}).then((hospital)=>{
                   if(hospital){
